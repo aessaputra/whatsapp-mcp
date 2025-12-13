@@ -1,0 +1,120 @@
+# ==============================================================================
+# WhatsApp MCP Docker Compose Configuration
+# ==============================================================================
+# This configuration runs WhatsApp Bridge and MCP Server as separate containers
+# with shared persistent storage for SQLite databases.
+#
+# Usage:
+#   First-time setup (QR authentication):
+#     docker compose run --rm -it whatsapp-bridge
+#
+#   Normal operation:
+#     docker compose up -d
+#
+#   View logs:
+#     docker compose logs -f
+#
+#   Stop services:
+#     docker compose down
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # WhatsApp Bridge (Go)
+  # Connects to WhatsApp Web API, handles authentication, stores messages
+  # ----------------------------------------------------------------------------
+  whatsapp-bridge:
+    build:
+      context: ./whatsapp-bridge
+      dockerfile: Dockerfile
+    container_name: whatsapp-bridge
+
+    # Enable TTY for QR code display during first-time authentication
+    stdin_open: true
+    tty: true
+
+    # Persistent storage for WhatsApp session and messages
+    volumes:
+      - whatsapp-data:/app/store
+
+    # Internal network - no ports exposed to host/public
+    networks:
+      - whatsapp-internal
+
+    # Restart policy for long-term stability
+    restart: unless-stopped
+
+    # Security: drop all capabilities except what's needed
+    cap_drop:
+      - ALL
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ----------------------------------------------------------------------------
+  # WhatsApp MCP Server (Python)
+  # Provides MCP tools for AI agents, runs via StdIO transport
+  # ----------------------------------------------------------------------------
+  whatsapp-mcp:
+    build:
+      context: ./whatsapp-mcp-server
+      dockerfile: Dockerfile
+    container_name: whatsapp-mcp
+
+    # Environment variables for container networking
+    environment:
+      - WHATSAPP_BRIDGE_URL=http://whatsapp-bridge:8080
+      - MESSAGES_DB_PATH=/app/store/messages.db
+
+    # Shared persistent storage with bridge
+    volumes:
+      - whatsapp-data:/app/store:ro # Read-only for MCP server (bridge writes)
+
+    # Wait for bridge to be available
+    depends_on:
+      whatsapp-bridge:
+        condition: service_started
+
+    # Internal network - no ports exposed (StdIO transport)
+    networks:
+      - whatsapp-internal
+
+    # Keep container running for MCP client connections
+    # The actual MCP communication happens via docker exec
+    stdin_open: true
+    tty: true
+
+    # Restart policy for long-term stability
+    restart: unless-stopped
+
+    # Security: drop all capabilities except what's needed
+    cap_drop:
+      - ALL
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# ==============================================================================
+# Named Volumes - Persistent storage that survives container restarts
+# ==============================================================================
+volumes:
+  whatsapp-data:
+    name: whatsapp-mcp-data
+    driver: local
+
+# ==============================================================================
+# Internal Network - Isolated communication between containers
+# ==============================================================================
+networks:
+  whatsapp-internal:
+    name: whatsapp-mcp-network
+    driver: bridge
+    internal: false # Allow outbound internet for WhatsApp API

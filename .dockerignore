@@ -1,0 +1,64 @@
+# ==============================================================================
+# Docker Build Ignore Patterns
+# ==============================================================================
+
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+LICENSE
+*.md
+*.png
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Python artifacts
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info
+.eggs
+dist
+build
+*.egg
+
+# Virtual environments
+venv
+.venv
+env
+.env
+
+# Testing
+.pytest_cache
+.coverage
+htmlcov
+.tox
+
+# Local database files (will be mounted as volume)
+store/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.log
+
+# Docker files (not needed inside container)
+docker-compose*.yml
+Dockerfile*
+
+# Example files
+example-use.png

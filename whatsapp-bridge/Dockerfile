@@ -20,8 +20,8 @@ WORKDIR /build
 # Copy dependency files first for better layer caching
 COPY go.mod go.sum ./
 
-# Download dependencies
-RUN go mod download
+# Update and download dependencies (regenerates go.sum if needed)
+RUN go mod tidy && go mod download
 
 # Copy source code
 COPY . .

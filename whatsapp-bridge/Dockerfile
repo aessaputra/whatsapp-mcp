@@ -27,10 +27,8 @@ RUN go mod download
 COPY . .
 
 # Build with CGO enabled for SQLite support
-# Using static linking for portability
+# Let Go auto-detect architecture (works for both amd64 and arm64)
 ENV CGO_ENABLED=1
-ENV GOOS=linux
-ENV GOARCH=amd64
 
 RUN go build -ldflags="-s -w" -o whatsapp-bridge .
 

@@ -17,20 +17,14 @@ RUN apk add --no-cache \
 
 WORKDIR /build
 
-# Copy dependency files first for better layer caching
-COPY go.mod go.sum ./
-
-# Update and download dependencies (regenerates go.sum if needed)
-RUN go mod tidy && go mod download
-
-# Copy source code
+# Copy all source files
 COPY . .
 
-# Build with CGO enabled for SQLite support
-# Let Go auto-detect architecture (works for both amd64 and arm64)
+# Update dependencies and regenerate go.sum, then build
+# go mod tidy needs source files to analyze imports
 ENV CGO_ENABLED=1
 
-RUN go build -ldflags="-s -w" -o whatsapp-bridge .
+RUN go mod tidy && go build -ldflags="-s -w" -o whatsapp-bridge .
 
 # ------------------------------------------------------------------------------
 # Stage 2: Runtime - Minimal Alpine image with only runtime dependencies

@@ -19,8 +19,8 @@ from whatsapp import (
 # API Key for authentication (optional, set via environment variable)
 MCP_API_KEY = os.environ.get('MCP_API_KEY', '')
 
-# Initialize FastMCP server
-mcp = FastMCP("whatsapp")
+# Initialize FastMCP server with stateless mode for better SSE stability
+mcp = FastMCP("whatsapp", stateless_http=True)
 
 @mcp.tool()
 def search_contacts(query: str) -> List[Dict[str, Any]]:

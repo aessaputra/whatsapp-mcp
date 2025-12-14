@@ -1,56 +1,8 @@
-# ==============================================================================
 # Caddyfile untuk WhatsApp MCP Server
-# ==============================================================================
-# Keamanan berlapis:
-# 1. TLS/HTTPS - Otomatis oleh Caddy
-# 2. IP Whitelist - Hanya izinkan IP client yang dikenal
-# 3. API Key - Header X-API-Key diforward ke MCP server
-# ==============================================================================
+# Ganti <YOUR_DOMAIN> dengan domain Anda
 
-whatsapp-mcp.domain-anda.com {
-    # 1. IP Whitelist - Ganti dengan IP AnythingLLM server
-    @allowed remote_ip <IP_ANYTHINGLLM_SERVER>
-    
-    handle @allowed {
-        reverse_proxy whatsapp-mcp:8000 {
-            # WAJIB untuk SSE streaming
-            flush_interval -1
-            
-            # Forward API Key header ke backend
-            header_up X-API-Key {header.X-API-Key}
-        }
-    }
-    
-    # Tolak semua IP lain
-    respond "Forbidden" 403
-    
-    log {
-        output file /var/log/caddy/whatsapp-mcp.log
+<YOUR_DOMAIN> {
+    reverse_proxy whatsapp-mcp:8000 {
+        flush_interval -1
     }
 }
-
-# ==============================================================================
-# Cara penggunaan:
-# ==============================================================================
-# 1. Ganti <IP_ANYTHINGLLM_SERVER> dengan IP server AnythingLLM
-#    Untuk mendapatkan IP: curl ifconfig.me (di server AnythingLLM)
-#
-# 2. Generate API Key:
-#    openssl rand -hex 32
-#
-# 3. Simpan API Key di file .env:
-#    echo "MCP_API_KEY=your-generated-key" > .env
-#
-# 4. Konfigurasi AnythingLLM:
-#    {
-#      "mcpServers": {
-#        "whatsapp": {
-#          "type": "sse",
-#          "url": "https://whatsapp-mcp.domain-anda.com/sse",
-#          "headers": {
-#            "X-API-Key": "your-generated-key"
-#          }
-#        }
-#      }
-#    }
-# ==============================================================================

@@ -287,13 +287,12 @@ if __name__ == "__main__":
         if MCP_API_KEY:
             # API Key authentication enabled
             class APIKeyMiddleware(BaseHTTPMiddleware):
-                """Middleware to validate API Key in X-API-Key or X-API-KEY header."""
+                """Middleware to validate API Key header."""
                 async def dispatch(self, request, call_next):
-                    # Check both header variants (case-insensitive)
+                    # Check multiple header variants
                     api_key = (
-                        request.headers.get('X-API-Key', '') or 
-                        request.headers.get('X-API-KEY', '') or
-                        request.headers.get('x-api-key', '')
+                        request.headers.get('x-api-key', '') or
+                        request.headers.get('authorization', '').replace('Bearer ', '')
                     )
                     if api_key != MCP_API_KEY:
                         return JSONResponse(

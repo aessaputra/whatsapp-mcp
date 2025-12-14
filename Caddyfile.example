@@ -1,8 +1,16 @@
 # Caddyfile untuk WhatsApp MCP Server
-# Ganti <YOUR_DOMAIN> dengan domain Anda
 
-<YOUR_DOMAIN> {
-    reverse_proxy whatsapp-mcp:8000 {
-        flush_interval -1
+wa-mcp.example.com {
+    # IP Whitelist - hanya izinkan IP Client
+    @allowed remote_ip <IP_CLIENT>
+    
+    handle @allowed {
+        reverse_proxy whatsapp-mcp:8000 {
+            flush_interval -1
+        }
+    }
+    
+    handle {
+        respond "Forbidden" 403
     }
 }

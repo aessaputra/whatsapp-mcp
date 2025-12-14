@@ -276,20 +276,25 @@ if __name__ == "__main__":
     if args.transport == 'stdio':
         mcp.run(transport='stdio')
     else:
-        # SSE transport for remote connections
+        # SSE transport for remote connections - always use uvicorn
+        import uvicorn
+        from starlette.applications import Starlette
+        from starlette.routing import Mount
+        from starlette.responses import JSONResponse
+        from starlette.middleware import Middleware
+        from starlette.middleware.base import BaseHTTPMiddleware
+        
         if MCP_API_KEY:
             # API Key authentication enabled
-            import uvicorn
-            from starlette.applications import Starlette
-            from starlette.routing import Mount
-            from starlette.responses import JSONResponse
-            from starlette.middleware import Middleware
-            from starlette.middleware.base import BaseHTTPMiddleware
-            
             class APIKeyMiddleware(BaseHTTPMiddleware):
-                """Middleware to validate API Key in X-API-Key header."""
+                """Middleware to validate API Key in X-API-Key or X-API-KEY header."""
                 async def dispatch(self, request, call_next):
-                    api_key = request.headers.get('X-API-Key', '')
+                    # Check both header variants (case-insensitive)
+                    api_key = (
+                        request.headers.get('X-API-Key', '') or 
+                        request.headers.get('X-API-KEY', '') or
+                        request.headers.get('x-api-key', '')
+                    )
                     if api_key != MCP_API_KEY:
                         return JSONResponse(
                             {'error': 'Unauthorized', 'message': 'Invalid or missing API key'},
@@ -302,11 +307,13 @@ if __name__ == "__main__":
                 routes=[Mount('/', app=mcp.sse_app())],
                 middleware=[Middleware(APIKeyMiddleware)]
             )
-            
             print(f"Starting WhatsApp MCP Server with API Key authentication")
-            print(f"Listening on http://{args.host}:{args.port}")
-            uvicorn.run(app, host=args.host, port=args.port)
         else:
             # No API Key - run directly (for development/trusted networks)
             print("WARNING: Running without API Key authentication")
-            mcp.run(transport='sse', host=args.host, port=args.port)
+            app = Starlette(
+                routes=[Mount('/', app=mcp.sse_app())]
+            )
+        
+        print(f"Listening on http://{args.host}:{args.port}")
+        uvicorn.run(app, host=args.host, port=args.port)

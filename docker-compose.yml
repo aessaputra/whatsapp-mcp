@@ -57,7 +57,7 @@ services:
 
   # ----------------------------------------------------------------------------
   # WhatsApp MCP Server (Python)
-  # Provides MCP tools for AI agents, runs via StdIO transport
+  # Provides MCP tools for AI agents, runs via SSE transport for remote access
   # ----------------------------------------------------------------------------
   whatsapp-mcp:
     build:
@@ -69,6 +69,7 @@ services:
     environment:
       - WHATSAPP_BRIDGE_URL=http://whatsapp-bridge:8080
       - MESSAGES_DB_PATH=/app/store/messages.db
+      - MCP_API_KEY=${MCP_API_KEY:-}  # Set via .env file for API key auth
 
     # Shared persistent storage with bridge
     volumes:
@@ -79,19 +80,20 @@ services:
       whatsapp-bridge:
         condition: service_started
 
-    # Internal network - no ports exposed (StdIO transport)
+    # Networks: internal for bridge communication, web for Caddy reverse proxy
     networks:
       - whatsapp-internal
+      - web  # External network for Caddy reverse proxy
 
-    # Keep container running for MCP client connections
-    # The actual MCP communication happens via docker exec
-    stdin_open: true
-    tty: true
+    # SSE transport command (HTTP-based, no stdin/tty needed)
+    command: ["uv", "run", "main.py", "--transport", "sse", "--host", "0.0.0.0", "--port", "8000"]
 
     # Restart policy for long-term stability
     restart: unless-stopped
 
     # Security: drop all capabilities except what's needed
+    security_opt:
+      - no-new-privileges:true
     cap_drop:
       - ALL
 
@@ -118,3 +120,5 @@ networks:
     name: whatsapp-mcp-network
     driver: bridge
     internal: false # Allow outbound internet for WhatsApp API
+  web:
+    external: true  # External network for Caddy reverse proxy

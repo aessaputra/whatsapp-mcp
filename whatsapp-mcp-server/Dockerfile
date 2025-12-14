@@ -49,8 +49,9 @@ ENV MESSAGES_DB_PATH="/app/store/messages.db"
 # Volume mount point (shared with bridge container)
 VOLUME ["/app/store"]
 
-# MCP Server runs via StdIO transport - no ports exposed
-# This is the default entrypoint for MCP client connections
+# Expose MCP HTTP port for SSE transport
+EXPOSE 8000
 
-# Default command runs the MCP server
-CMD ["uv", "run", "main.py"]
+# MCP Server runs via SSE transport for remote connections
+# Use --transport stdio for local/stdio mode
+CMD ["uv", "run", "main.py", "--transport", "sse", "--host", "0.0.0.0", "--port", "8000"]

@@ -1,3 +1,4 @@
+import os
 from typing import List, Dict, Any, Optional
 from mcp.server.fastmcp import FastMCP
 from whatsapp import (
@@ -14,6 +15,9 @@ from whatsapp import (
     send_audio_message as whatsapp_audio_voice_message,
     download_media as whatsapp_download_media
 )
+
+# API Key for authentication (optional, set via environment variable)
+MCP_API_KEY = os.environ.get('MCP_API_KEY', '')
 
 # Initialize FastMCP server
 mcp = FastMCP("whatsapp")
@@ -247,5 +251,62 @@ def download_media(message_id: str, chat_jid: str) -> Dict[str, Any]:
         }
 
 if __name__ == "__main__":
-    # Initialize and run the server
-    mcp.run(transport='stdio')
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="WhatsApp MCP Server")
+    parser.add_argument(
+        '--transport',
+        choices=['stdio', 'sse'],
+        default='stdio',
+        help='Transport type: stdio (default) or sse for HTTP'
+    )
+    parser.add_argument(
+        '--host',
+        default='0.0.0.0',
+        help='Host to bind SSE server (default: 0.0.0.0)'
+    )
+    parser.add_argument(
+        '--port',
+        type=int,
+        default=8000,
+        help='Port for SSE server (default: 8000)'
+    )
+    args = parser.parse_args()
+    
+    if args.transport == 'stdio':
+        mcp.run(transport='stdio')
+    else:
+        # SSE transport for remote connections
+        if MCP_API_KEY:
+            # API Key authentication enabled
+            import uvicorn
+            from starlette.applications import Starlette
+            from starlette.routing import Mount
+            from starlette.responses import JSONResponse
+            from starlette.middleware import Middleware
+            from starlette.middleware.base import BaseHTTPMiddleware
+            
+            class APIKeyMiddleware(BaseHTTPMiddleware):
+                """Middleware to validate API Key in X-API-Key header."""
+                async def dispatch(self, request, call_next):
+                    api_key = request.headers.get('X-API-Key', '')
+                    if api_key != MCP_API_KEY:
+                        return JSONResponse(
+                            {'error': 'Unauthorized', 'message': 'Invalid or missing API key'},
+                            status_code=401
+                        )
+                    return await call_next(request)
+            
+            # Create Starlette app with API key middleware
+            app = Starlette(
+                routes=[Mount('/', app=mcp.sse_app())],
+                middleware=[Middleware(APIKeyMiddleware)]
+            )
+            
+            print(f"Starting WhatsApp MCP Server with API Key authentication")
+            print(f"Listening on http://{args.host}:{args.port}")
+            uvicorn.run(app, host=args.host, port=args.port)
+        else:
+            # No API Key - run directly (for development/trusted networks)
+            print("WARNING: Running without API Key authentication")
+            mcp.run(transport='sse', host=args.host, port=args.port)

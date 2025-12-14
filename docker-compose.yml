@@ -70,6 +70,7 @@ services:
       - WHATSAPP_BRIDGE_URL=http://whatsapp-bridge:8080
       - MESSAGES_DB_PATH=/app/store/messages.db
       - MCP_API_KEY=${MCP_API_KEY:-}  # Set via .env file for API key auth
+      - MCP_ALLOWED_HOSTS=${MCP_ALLOWED_HOSTS:-localhost:8000}  # Comma-separated allowed hosts
 
     # Shared persistent storage with bridge
     volumes:

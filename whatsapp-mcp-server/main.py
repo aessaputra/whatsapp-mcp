@@ -19,8 +19,20 @@ from whatsapp import (
 # API Key for authentication (optional, set via environment variable)
 MCP_API_KEY = os.environ.get('MCP_API_KEY', '')
 
+# Allowed hosts for reverse proxy (set via environment variable)
+# Format: comma-separated list, e.g., "wa-mcp.example.com,localhost:8000"
+ALLOWED_HOSTS = os.environ.get('MCP_ALLOWED_HOSTS', 'localhost:8000,127.0.0.1:8000').split(',')
+
+# Configure transport security for production with reverse proxy
+from mcp.server.transport_security import TransportSecuritySettings
+
+security_settings = TransportSecuritySettings(
+    enable_dns_rebinding_protection=True,
+    allowed_hosts=ALLOWED_HOSTS + ["localhost:8000", "127.0.0.1:8000"],
+)
+
 # Initialize FastMCP server with stateless mode for better SSE stability
-mcp = FastMCP("whatsapp", stateless_http=True)
+mcp = FastMCP("whatsapp", stateless_http=True, transport_security=security_settings)
 
 @mcp.tool()
 def search_contacts(query: str) -> List[Dict[str, Any]]:

@@ -289,11 +289,18 @@ if __name__ == "__main__":
             class APIKeyMiddleware(BaseHTTPMiddleware):
                 """Middleware to validate API Key header."""
                 async def dispatch(self, request, call_next):
+                    # DEBUG: Log all headers
+                    print(f"DEBUG: All headers = {dict(request.headers)}")
+                    
                     # Check multiple header variants
                     api_key = (
                         request.headers.get('x-api-key', '') or
                         request.headers.get('authorization', '').replace('Bearer ', '')
                     )
+                    print(f"DEBUG: Received API key = '{api_key}'")
+                    print(f"DEBUG: Expected API key = '{MCP_API_KEY}'")
+                    print(f"DEBUG: Match = {api_key == MCP_API_KEY}")
+                    
                     if api_key != MCP_API_KEY:
                         return JSONResponse(
                             {'error': 'Unauthorized', 'message': 'Invalid or missing API key'},

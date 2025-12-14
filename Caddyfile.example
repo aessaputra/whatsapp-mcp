@@ -1,10 +1,18 @@
 # Caddyfile untuk WhatsApp MCP Server
 
 wa-mcp.example.com {
-    # IP Whitelist - hanya izinkan IP Client
+    # 1. IP Whitelist - hanya izinkan IP Client
     @allowed remote_ip <IP_CLIENT>
     
     handle @allowed {
+        # Security Headers
+        header {
+            Strict-Transport-Security "max-age=31536000; includeSubDomains"
+            X-Content-Type-Options "nosniff"
+            X-Frame-Options "DENY"
+            -Server
+        }
+        
         reverse_proxy whatsapp-mcp:8000 {
             flush_interval -1
         }
@@ -12,5 +20,9 @@ wa-mcp.example.com {
     
     handle {
         respond "Forbidden" 403
+    }
+    
+    log {
+        output file /var/log/caddy/whatsapp-mcp.log
     }
 }
